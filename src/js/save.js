@@ -69,6 +69,8 @@ function clearSave() {
 
     dilators = JSON.parse(JSON.stringify(BASE_DILATORS));
 
+    are_years_infinite = 1;
+
     updateBuyButtons();
 }
 
