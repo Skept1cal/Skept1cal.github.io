@@ -1,9 +1,9 @@
 function saveGame() {
     const data = {
-        years: player.years,
+        years: player.years === Infinity ? Number.MAX_VALUE : player.years,
         dilation: player.dilation,
 
-        dilators: JSON.parse(JSON.stringify(dilators))
+        dilators: structuredClone(dilators)
     };
 
     const encoded = btoa(JSON.stringify(data));
@@ -11,12 +11,14 @@ function saveGame() {
     localStorage.setItem("temporality_save_file", encoded);
 }
 
+
+
 function tob64() {
     const data = {
         years: player.years,
         dilation: player.dilation,
 
-        dilators: JSON.parse(JSON.stringify(dilators))
+        dilators: structuredClone(dilators)
     };
 
     const encoded = btoa(JSON.stringify(data));
@@ -24,46 +26,54 @@ function tob64() {
     return encoded;
 }
 
+
+
 function loadSave(data=null) {
-    try {
-        if (data === null) {
-            const data_string = localStorage.getItem("temporality_save_file");
-            const decoded = JSON.parse(atob(data_string));
+    if (data === null) {
+        const data_string = localStorage.getItem("temporality_save_file");
+        const decoded = JSON.parse(atob(data_string));
 
-            if (decoded !== null) {
-                player.years = Number(decoded.years);
-                player.dilation = Number(decoded.dilation);
+        if (decoded !== null) {
+            player.years = Number(decoded.years);
+            player.dilation = Number(decoded.dilation);
 
-                for (let i = 0; i < dilators.length; i++) {
-                    dilators[i] = JSON.parse(JSON.stringify(decoded.dilators[i]));
-                };
-            };
-        } else {
-            const decoded = JSON.parse(atob(data));
-
-            if (decoded !== null) {
-                player.years = Number(decoded.years);
-                player.dilation = Number(decoded.dilation);
-
-                for (let i = 0; i < dilators.length; i++) {
-                    dilators[i] = JSON.parse(JSON.stringify(decoded.dilators[i]));
-                };
+            for (let i = 0; i < dilators.length; i++) {
+                dilators[i] = structuredClone(decoded.dilators[i]);
             };
         };
-    } catch (error) {
-        console.log("Failed to load save file.");
-    }
+    } else {
+        const decoded = JSON.parse(atob(data));
+
+        if (decoded !== null) {
+            player.years = Number(decoded.years);
+            player.dilation = Number(decoded.dilation);
+
+            for (let i = 0; i < dilators.length; i++) {
+                dilators[i] = structuredClone(decoded.dilators[i]);
+            };
+        };
+    };
 
     updateBuyButtons();
 }
 
+
+
 function save_btn_pressed() {
     saveGame();
 
-    document.getElementById("save-btn").innerHTML = `<h2>Saved!</h2>`;
+    const button = document.getElementById("save-btn");
+
+    button.innerHTML = `<h2>Saved!</h2>`;
+    button.onclick = null;
     
-    setTimeout(() => {document.getElementById("save-btn").innerHTML = `<h2>Save</h2>`}, 2000);
+    setTimeout(() => {
+        button.innerHTML = `<h2>Save</h2>`;
+        button.onclick = save_btn_pressed;
+    }, 2000);
 }
+
+
 
 function clearSave() {
     localStorage.setItem("temporality_save_file", null);
@@ -73,16 +83,20 @@ function clearSave() {
 
     dilators = JSON.parse(JSON.stringify(BASE_DILATORS));
 
+    are_years_infinite = 1;
+
     updateBuyButtons();
 }
 
-function clearSave_btn_pressed() {
-    let button = document.getElementById("clear-save-btn");
 
-    button.innerHTML = `<h2>Confirm?</h2>`;
+
+function clearSave_btn_pressed() {
+    const button = document.getElementById("clear-save-btn");
+
+    button.onclick = null;
+    button.innerHTML = `<h2>Are you sure?</h2>`;
     button.classList.toggle("disabled", true);
     button.classList.toggle("enabled", false);
-    button.onclick = null;
     
     let confirmed = false;
 
@@ -90,59 +104,112 @@ function clearSave_btn_pressed() {
         button.onclick = () => {
             clearSave();
             button.innerHTML = `<h2>Cleared.</h2>`;
+            button.onclick = null
             confirmed = true;
             
             setTimeout(() => {
                 document.getElementById("clear-save-btn").innerHTML = `<h2>Clear save</h2>`;
-                button.onclick = () => {clearSave_btn_pressed()};
+                button.onclick = clearSave_btn_pressed;
             }, 2000);
-        }
+        };
         button.classList.toggle("disabled", false);
         button.classList.toggle("enabled", true);
     }, 2000);
     
     setTimeout(() => {
         if (!confirmed) {
-            button.onclick = () => {clearSave_btn_pressed()};
+            button.onclick = clearSave_btn_pressed;
             button.innerHTML = `<h2>Clear save</h2>`;
         };
     }, 5000);
 }
 
-function copySave() {
-    let button = document.getElementById("copy-save-btn");
 
-    navigator.clipboard.writeText(tob64());
 
-    button.innerHTML = `<h2>Copied!</h2>`;
+async function copySave() {
+    const button = document.getElementById("copy-save-btn");
 
-    setTimeout(() => {button.innerHTML = `<h2>Copy save</h2>`}, 2000);
-}
+    button.onclick = null;
 
-async function loadFromString() {
-    const data = await navigator.clipboard.readText();
-    const button = document.getElementById("load-save-btn");
+    try {
+        await navigator.clipboard.writeText(tob64());
 
-    if (!button.classList.contains("disabled")) {
-        try {
-            loadSave(data);
+        button.innerHTML = `<h2>Copied!</h2>`;
 
-            button.innerHTML = `<h2>Loaded!</h2>`;
+        setTimeout(() => {
+            button.innerHTML = `<h2>Copy save</h2>`;
+            button.onclick = copySave;
+        }, 2000);
+    } catch (error) {
+        console.log(`DEBUG: Failed to copy save string to clipboard. Error: ${error}`);
 
-            setTimeout(() => {button.innerHTML = `<h2>Load from clipboard</h2>`;}, 2000);
-        } catch (error) {
-            console.log(`Failed to load save from copied string. Error: ${error}`);
+        button.classList.toggle("disabled", true);
+        button.classList.toggle("enabled", false);
 
-            button.classList.toggle("disabled", true);
-            button.classList.toggle("enabled", false);
+        button.innerHTML = `<h2>Copy failed.</h2>`;
 
-            button.innerHTML = `<h2>Invalid string.</h2>`;
-            
-            setTimeout(() => {
+        setTimeout(() => {
                 button.classList.toggle("disabled", false);
                 button.classList.toggle("enabled", true);
-                button.innerHTML = `<h2>Load from clipboard</h2>`;
-            }, 2000);
+                button.innerHTML = `<h2>Copy save</h2>`;
+                button.onclick = copySave;
+        }, 2000);
+    }
+}
+
+
+
+async function loadFromString() {
+    const button = document.getElementById("load-save-btn");
+
+    button.onclick = null;
+    button.classList.toggle("disabled", true);
+    button.classList.toggle("enabled", false);
+    button.innerHTML = `<h2>Are you sure?</h2>`;
+
+    let confirmed = false;
+
+    setTimeout(() => {
+        confirmed = true;
+        button.onclick = async () => {
+            try {
+                button.onclick = null;
+
+                const data = await navigator.clipboard.readText();
+
+                loadSave(data);
+                saveGame();
+
+                button.innerHTML = `<h2>Loaded!</h2>`;
+
+                setTimeout(() => {
+                    button.innerHTML = `<h2>Load from clipboard</h2>`;
+                    button.onclick = loadFromString;
+                }, 2000);
+            } catch (error) {
+                console.log(`DEBUG: Failed to load save from copied string. Error: ${error}`);
+
+                button.classList.toggle("disabled", true);
+                button.classList.toggle("enabled", false);
+
+                button.innerHTML = `<h2>Failed to load save.</h2>`;
+                
+                setTimeout(() => {
+                    button.classList.toggle("disabled", false);
+                    button.classList.toggle("enabled", true);
+                    button.innerHTML = `<h2>Load from clipboard</h2>`;
+                    button.onclick = loadFromString;
+                }, 2000);
+            }
         };
-    };
+        button.classList.toggle("disabled", false);
+        button.classList.toggle("enabled", true);
+    }, 2000);
+
+    setTimeout(() => {
+        if (!confirmed) {
+            button.onclick = loadFromString;
+            button.innerHTML = `<h2>Load from clipboard</h2>`;
+        };
+    }, 5000);
 }

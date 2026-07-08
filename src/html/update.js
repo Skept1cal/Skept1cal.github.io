@@ -26,7 +26,7 @@ function updateHTML() {
         isMaxable();
     }
 
-    if (player.years >= Number.MAX_VALUE || [Infinity, null, NaN, undefined].includes(player.years)) {player.years = Infinity}; // Clamps years to infinity after passing ~1.797e308
+    if (player.years >= 1.797e308 || [Infinity, NaN, undefined].includes(player.years)) {player.years = Infinity}; // Clamps years to infinity after passing ~1.797e308
 }
 
 function updateBuyButtons() {
