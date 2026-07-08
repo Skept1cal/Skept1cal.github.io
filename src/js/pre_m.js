@@ -4,7 +4,7 @@ let are_years_infinite = 1;
 
 function updateYears(diff) {
 
-    if ([Infinity, null, NaN, undefined].includes(player.years)) {
+    if (isInfinite(player.years)) {
         are_years_infinite = 0;
         return;
     };

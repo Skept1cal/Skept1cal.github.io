@@ -13,7 +13,7 @@ function loop() {
     updatePre_m(diff);
     updateHTML();
 
-    if ([Infinity, null, NaN, undefined].includes(player.years) && is_first_iteration_after_inf) {
+    if (isInfinite(player.years) && is_first_iteration_after_inf) {
         is_first_iteration_after_inf = false;
 
         updateBuyButtons();
